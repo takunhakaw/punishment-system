@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">青春破冰：真心話抽籤箱</title>
+    <!-- 引入 Tailwind CSS 快速美化介面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(236, 72, 153, 0.8); }
+        }
+        .neon-card {
+            animation: pulse-glow 3s infinite;
+        }
+        /* 全螢幕時的專屬樣式放大 */
+        #draw-card:fullscreen {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3rem 4rem;
+            background: rgb(15 23 42 / 0.98);
+            width: 100vw;
+            height: 100vh;
+        }
+        #draw-card:fullscreen #fullscreen-header {
+            display: flex !important;
+        }
+        /* 全螢幕標題與副標題放大 2 倍 */
+        #draw-card:fullscreen #fs-title {
+            font-size: clamp(2.2rem, 4vw, 3.8rem) !important;
+            line-height: 1.2;
+        }
+        #draw-card:fullscreen #fs-subtitle {
+            font-size: clamp(1rem, 2vw, 1.6rem) !important;
+            margin-top: 0.5rem;
+        }
+        #draw-card:fullscreen #question-text {
+            font-size: clamp(2rem, 5vw, 4.5rem) !important;
+            line-height: 1.4;
+        }
+        #draw-card:fullscreen .fullscreen-hide {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-indigo-950 min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 sm:p-6 select-none">
+
+    <!-- 頂部標題列 -->
+    <header class="w-full max-w-2xl flex justify-between items-center py-4 fullscreen-hide">
+        <div>
+            <h1 id="header-title" class="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-400 bg-clip-text text-transparent">
+                青春破冰：真心話抽籤箱
+            </h1>
+            <p id="header-subtitle" class="text-xs sm:text-sm text-slate-400 mt-1">抽出一題，多認識彼此一點！</p>
+        </div>
+        <button onclick="toggleSettings()" class="bg-slate-800/80 hover:bg-slate-700 text-purple-300 border border-purple-500/30 px-3 py-2 rounded-xl text-sm font-medium transition flex items-center gap-1 shadow-lg backdrop-blur-md">
+            ⚙️ 設定與題庫
+        </button>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="w-full max-w-xl flex flex-col items-center my-auto py-6">
+        
+        <!-- 抽籤卡片容器 -->
+        <div id="draw-card" class="w-full aspect-[4/3] sm:aspect-[16/10] neon-card bg-slate-900/80 border border-purple-500/30 rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative backdrop-blur-xl shadow-2xl overflow-hidden cursor-pointer" onclick="handleCardClick(event)">
+            
+            <!-- 全螢幕左上方專屬標題 (平時隱藏，進入全螢幕顯示) -->
+            <div id="fullscreen-header" class="hidden flex-col items-start z-10">
+                <h2 id="fs-title" class="text-xl font-bold bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">青春破冰：真心話抽籤箱</h2>
+                <p id="fs-subtitle" class="text-xs text-slate-400">抽出一題，多認識彼此一點！</p>
+            </div>
+
+            <!-- 頂端資訊與全螢幕按鈕 -->
+            <div class="flex justify-between items-center z-10">
+                <span class="bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs px-3 py-1 rounded-full font-semibold">
+                    抽籤箱
+                </span>
+                <div class="flex items-center gap-2">
+                    <span id="remaining-count" class="text-xs text-slate-400 font-medium">
+                        剩餘題目：46 題
+                    </span>
+                    <button onclick="toggleFullscreen(event)" class="bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 p-1.5 rounded-lg text-xs transition" title="全螢幕放大">
+                        ⤢ 全螢幕
+                    </button>
+                </div>
+            </div>
+
+            <!-- 卡片核心內容 -->
+            <div id="card-content" class="text-center z-10 my-auto py-4">
+                <div id="card-idle" class="space-y-3">
+                    <div id="zany-icon" class="text-5xl sm:text-6xl animate-bounce">⚡</div>
+                    <h2 id="main-prompt-title" class="text-xl sm:text-2xl font-bold text-slate-200">點擊畫面或按鈕抽題</h2>
+                    <p id="main-prompt-sub" class="text-xs sm:text-sm text-slate-400">準備好揭曉你的加碼任務了嗎？</p>
+                </div>
+                <div id="card-result" class="hidden space-y-4">
+                    <span class="text-xs uppercase tracking-widest text-pink-400 font-bold">🎯 您的專屬任務</span>
+                    <p id="question-text" class="text-lg sm:text-2xl font-semibold text-white leading-relaxed px-2"></p>
+                </div>
+            </div>
+
+            <!-- 底部提示 -->
+            <div id="card-footer-tip" class="text-center z-10 text-xs text-slate-500 fullscreen-hide">
+                點擊任意處立即抽取
+            </div>
+
+            <!-- 背景裝飾光暈 -->
+            <div class="absolute -right-16 -bottom-16 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -left-16 -top-16 w-48 h-48 bg-cyan-600/20 rounded-full blur-3xl pointer-events-none"></div>
+        </div>
+
+        <!-- 操作按鈕列 -->
+        <div class="flex flex-wrap gap-3 justify-center mt-6 w-full fullscreen-hide">
+            <button id="btn-draw" onclick="handleCardClick(event)" class="flex-1 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg transition transform active:scale-95 text-sm sm:text-base flex items-center justify-center gap-2">
+                🎲 抽取懲罰題目
+            </button>
+            <button id="btn-reset" onclick="resetPool()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold py-3.5 px-5 rounded-2xl transition text-sm sm:text-base">
+                🔄 重新洗牌
+            </button>
+        </div>
+
+        <!-- 已抽過紀錄區 -->
+        <div class="w-full mt-6 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 backdrop-blur-sm fullscreen-hide">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-semibold text-slate-400">📜 已抽過的題目紀錄</span>
+                <span id="history-count" class="text-xs text-slate-500">0 題</span>
+            </div>
+            <div id="history-list" class="text-xs text-slate-400 max-h-24 overflow-y-auto space-y-1 pr-1">
+                <p class="text-slate-600 italic">尚無抽籤紀錄...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 設定彈跳視窗 Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-purple-500/30 w-full max-w-lg rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                <h3 class="text-lg font-bold text-purple-300">⚙️ 系統參數與題庫設定</h3>
+                <button onclick="toggleSettings()" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+            </div>
+
+            <div class="py-4 space-y-4 overflow-y-auto flex-1 pr-1">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">網頁標題 (Title)</label>
+                    <input type="text" id="input-title" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">副標題提示</label>
+                    <input type="text" id="input-subtitle" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">主抽籤按鈕文字</label>
+                        <input type="text" id="input-btn-draw" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">重新洗牌按鈕文字</label>
+                        <input type="text" id="input-btn-reset" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-semibold text-slate-400">題庫內容 (每行代表一道題目)</label>
+                        <span id="settings-q-count" class="text-xs text-purple-400">共 46 題</span>
+                    </div>
+                    <textarea id="input-questions" rows="6" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-purple-500 font-mono leading-relaxed"></textarea>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 flex justify-between gap-3">
+                <button onclick="restoreDefaults()" class="bg-slate-800 hover:bg-slate-700 text-rose-400 border border-rose-500/20 px-4 py-2.5 rounded-xl text-xs font-medium transition">
+                    恢復預設值
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="toggleSettings()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl text-xs font-medium transition">
+                        取消
+                    </button>
+                    <button onclick="saveSettings()" class="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg transition">
+                        儲存設定
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頁尾 -->
+    <footer class="w-full max-w-2xl text-center py-4 text-xs text-slate-600 fullscreen-hide">
+        青春破冰活動專用抽籤系統 &bull; 設計給國高中生的趣味互動
+    </footer>
+
+    <!-- 系統 JavaScript 邏輯 -->
+    <script>
+        const zanyIcons = ["⚡", "💀", "🔥", "🌀", "⚔️", "💎", "🧬", "👁️‍🗨️", "🚀", "🧨"];
+
+        const defaultSettings = {
+            title: "青春破冰：真心話抽籤箱",
+            subtitle: "抽出一題，多認識彼此一點！",
+            btnDraw: "🎲 抽取懲罰題目",
+            btnReset: "🔄 重新洗牌",
+            questions: [
+                "請用誇張的偶像劇男主角語氣，向現場的一位同學深情告白：『這杯珍珠奶茶，我要了。』",
+                "現場示範一秒變臉：從『超級生氣的教官』無縫切換到『看到偶像的粉絲』。",
+                "閉上眼睛，請現場同學隨便指定一個動物，你要模仿牠叫聲三次，不能笑場。",
+                "請用一句話激怒現場所有的動漫迷或手遊玩家。",
+                "如果明天一覺醒來，你變成了全校第一帥或最美的人，你第一個想做的事是什麼？",
+                "如果必須在『手機永遠沒有網路』跟『每天上學都要用倒立走路』之間選一個，你選哪個？",
+                "請用 3 個詞形容你上一次段考成績出來時，你爸媽臉上的表情。",
+                "如果可以在班導師的辦公室裝一個監視器，你最想看老師私底下在幹嘛？",
+                "說出一個你藏在心中很久、但從來不敢跟爸媽坦白的『小小秘密』。",
+                "如果你有超能力可以神不知鬼不覺地對全校廣播 5 秒鐘，你打算大喊什麼話？",
+                "如果在班上選一個人跟你流落荒島一個月，你會選誰？為什麼？",
+                "請分享一個你曾經以為很帥、但現在長大回頭看覺得超級中二的黑歷史。"
+            ]
+        };
+
+        let settings = JSON.parse(localStorage.getItem('icebreaker_settings')) || defaultSettings;
+        let activePool = JSON.parse(localStorage.getItem('icebreaker_activePool')) || [...settings.questions];
+        let historyPool = JSON.parse(localStorage.getItem('icebreaker_history')) || [];
+        let currentState = 'idle'; 
+
+        function initApp() {
+            document.title = settings.title;
+            document.getElementById('page-title').innerText = settings.title;
+            document.getElementById('header-title').innerText = settings.title;
+            document.getElementById('header-subtitle').innerText = settings.subtitle;
+            document.getElementById('fs-title').innerText = settings.title;
+            document.getElementById('fs-subtitle').innerText = settings.subtitle;
+            document.getElementById('btn-draw').innerText = settings.btnDraw;
+            document.getElementById('btn-reset').innerText = settings.btnReset;
+            updateUI();
+        }
+
+        function updateUI() {
+            const total = settings.questions.length;
+            const remaining = activePool.length;
+            document.getElementById('remaining-count').innerText = `剩餘題目：${remaining} / ${total} 題`;
+            document.getElementById('history-count').innerText = `${historyPool.length} 題`;
+
+            const historyList = document.getElementById('history-list');
+            if (historyPool.length === 0) {
+                historyList.innerHTML = `<p class="text-slate-600 italic">尚無抽籤紀錄...</p>`;
+            } else {
+                historyList.innerHTML = historyPool.map((q, i) => `<div class="truncate text-slate-400">${historyPool.length - i}. ${q}</div>`).join('');
+            }
+        }
+
+        function handleCardClick(event) {
+            if (event && event.target.closest('button')) return;
+
+            const idleEl = document.getElementById('card-idle');
+            const resultEl = document.getElementById('card-result');
+            const textEl = document.getElementById('question-text');
+            const btnDraw = document.getElementById('btn-draw');
+            const footerTip = document.getElementById('card-footer-tip');
+
+            if (currentState === 'showing') {
+                currentState = 'idle';
+                idleEl.classList.remove('hidden');
+                resultEl.classList.add('hidden');
+                
+                const randomIcon = zanyIcons[Math.floor(Math.random() * zanyIcons.length)];
+                document.getElementById('zany-icon').innerText = randomIcon;
+
+                document.getElementById('main-prompt-title').innerText = "你準備好抽下一題了嗎？";
+                document.getElementById('main-prompt-sub').innerText = "點擊畫面進入下一題準備";
+                btnDraw.innerText = settings.btnDraw;
+                footerTip.innerText = "點擊任意處立即抽取";
+                return;
+            }
+
+            if (activePool.length === 0) {
+                idleEl.classList.remove('hidden');
+                resultEl.classList.add('hidden');
+                document.getElementById('main-prompt-title').innerText = "🎉 所有題目已抽完！";
+                document.getElementById('main-prompt-sub').innerText = "請點擊下方按鈕重新洗牌";
+                return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * activePool.length);
+            const drawn = activePool.splice(randomIndex, 1)[0];
+            historyPool.unshift(drawn);
+
+            localStorage.setItem('icebreaker_activePool', JSON.stringify(activePool));
+            localStorage.setItem('icebreaker_history', JSON.stringify(historyPool));
+
+            currentState = 'showing';
+            idleEl.classList.add('hidden');
+            resultEl.classList.remove('hidden');
+            textEl.innerText = `「${drawn}」`;
+
+            btnDraw.innerText = "👉 準備好抽下一題了！";
+            footerTip.innerText = "點擊畫面進入下一題準備";
+
+            updateUI();
+        }
+
+        function toggleFullscreen(event) {
+            event.stopPropagation();
+            const card = document.getElementById('draw-card');
+            if (!document.fullscreenElement) {
+                card.requestFullscreen().catch(err => {
+                    alert(`無法切換全螢幕: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function resetPool() {
+            activePool = [...settings.questions];
+            historyPool = [];
+            currentState = 'idle';
+            localStorage.setItem('icebreaker_activePool', JSON.stringify(activePool));
+            localStorage.setItem('icebreaker_history', JSON.stringify(historyPool));
+
+            const idleEl = document.getElementById('card-idle');
+            const resultEl = document.getElementById('card-result');
+            idleEl.classList.remove('hidden');
+            resultEl.classList.add('hidden');
+
+            const randomIcon = zanyIcons[Math.floor(Math.random() * zanyIcons.length)];
+            document.getElementById('zany-icon').innerText = randomIcon;
+            document.getElementById('main-prompt-title').innerText = "點擊畫面或按鈕抽題";
+            document.getElementById('main-prompt-sub').innerText = "準備好揭曉你的加碼任務了嗎？";
+            document.getElementById('btn-draw').innerText = settings.btnDraw;
+
+            updateUI();
+        }
+
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+            if (isHidden) {
+                document.getElementById('input-title').value = settings.title;
+                document.getElementById('input-subtitle').value = settings.subtitle;
+                document.getElementById('input-btn-draw').value = settings.btnDraw;
+                document.getElementById('input-btn-reset').value = settings.btnReset;
+                document.getElementById('input-questions').value = settings.questions.join('\n');
+                document.getElementById('settings-q-count').innerText = `共 ${settings.questions.length} 題`;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveSettings() {
+            const newTitle = document.getElementById('input-title').value.trim();
+            const newSubtitle = document.getElementById('input-subtitle').value.trim();
+            const newBtnDraw = document.getElementById('input-btn-draw').value.trim();
+            const newBtnReset = document.getElementById('input-btn-reset').value.trim();
+            const rawQuestions = document.getElementById('input-questions').value;
+            const newQuestions = rawQuestions.split('\n').map(q => q.trim()).filter(q => q.length > 0);
+
+            if (newQuestions.length === 0) {
+                alert("題庫不能為空！至少需要保留一題。");
+                return;
+            }
+
+            settings.title = newTitle || defaultSettings.title;
+            settings.subtitle = newSubtitle || defaultSettings.subtitle;
+            settings.btnDraw = newBtnDraw || defaultSettings.btnDraw;
+            settings.btnReset = newBtnReset || defaultSettings.btnReset;
+            settings.questions = newQuestions;
+
+            localStorage.setItem('icebreaker_settings', JSON.stringify(settings));
+            
+            resetPool();
+            initApp();
+            toggleSettings();
+        }
+
+        function restoreDefaults() {
+            if (confirm("確定要恢復預設的標題、按鈕與題庫嗎？")) {
+                localStorage.removeItem('icebreaker_settings');
+                localStorage.removeItem('icebreaker_activePool');
+                localStorage.removeItem('icebreaker_history');
+                settings = JSON.parse(JSON.stringify(defaultSettings));
+                activePool = [...settings.questions];
+                historyPool = [];
+                currentState = 'idle';
+                initApp();
+                toggleSettings();
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
